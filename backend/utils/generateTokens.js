@@ -8,6 +8,5 @@ export default function generateTokens(userId) {
   const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
-
   return { accessToken, refreshToken };
 }

@@ -28,13 +28,13 @@ const userSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
         },
-        role: {
-          type: String,
-          enum: ["customer", "admin"],
-          default: "customer",
-        },
       },
     ],
+    role: {
+      type: String,
+      enum: ["customer", "admin"],
+      default: "customer",
+    },
     isVerified: {
       type: Boolean,
       default: false,

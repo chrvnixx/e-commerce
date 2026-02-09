@@ -2,21 +2,20 @@ import User from "../../models/User.js";
 import bcrypt from "bcrypt";
 import generateTokens from "../../utils/generateTokens.js";
 import {
-  setCookies,
+  setCookie,
   storeRefreshToken,
-} from "../../utils/storeRefreshToken.js";
+} from "../../utils/storeRefreshTokenAndSetCookie.js";
 
 export async function signup(req, res) {
   const { email, password, name } = req.body;
   try {
     const userAlreadyExists = await User.findOne({ email });
     if (userAlreadyExists) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User already exists" });
+      res.status(400).json({ success: false, message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const verificationToken = Math.floor(
       100000 + Math.random() * 900000,
     ).toString();
@@ -30,13 +29,15 @@ export async function signup(req, res) {
     });
 
     await user.save();
-
     const { accessToken, refreshToken } = generateTokens(user._id);
-    await storeRefreshToken(user._id, refreshToken);
+    await storeRefreshToken(refreshToken, user._id);
+    setCookie(accessToken, refreshToken, res);
 
-    setCookies(accessToken, refreshToken, res);
-
-    res.status(201).json({ success: true, message: "User created" });
+    res.status(201).json({
+      success: true,
+      message: "User created!!",
+      user: { ...user._doc, password: undefined },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
     console.log("Error in signup controller", error);
