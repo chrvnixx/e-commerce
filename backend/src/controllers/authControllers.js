@@ -5,6 +5,8 @@ import {
   setCookie,
   storeRefreshToken,
 } from "../../utils/storeRefreshTokenAndSetCookie.js";
+import jwt from "jsonwebtoken";
+import { redis } from "../../config/redis.js";
 
 export async function signup(req, res) {
   const { email, password, name } = req.body;
@@ -41,5 +43,80 @@ export async function signup(req, res) {
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
     console.log("Error in signup controller", error);
+  }
+}
+
+export async function verifyEmail(req, res) {
+  const { code } = req.body;
+  try {
+    if (!code) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Input verification code" });
+    }
+
+    const user = await User.findOne({
+      verificationToken: code,
+      verificationTokenExpiresAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired code" });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiresAt = undefined;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ success: true, message: "verification complete", user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+    console.log("Error in verify email controller", error);
+  }
+}
+
+export async function logout(req, res) {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      await redis.del(`refresh_token:${decoded.userId}`);
+    }
+    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken");
+    res.json({ message: "Logged out!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+    console.log("Error in signup controller", error);
+  }
+}
+
+export async function login(req, res) {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    const verifyPassword = await bcrypt.compare(password, user.password);
+    if (!verifyPassword) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+    const { accessToken, refreshToken } = generateTokens(user._id);
+    await storeRefreshToken(refreshToken, user._id);
+    setCookie(accessToken, refreshToken, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+    console.log("Error in login controller", error);
   }
 }
