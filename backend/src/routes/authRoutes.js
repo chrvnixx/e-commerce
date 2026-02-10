@@ -2,6 +2,7 @@ import express from "express";
 import {
   login,
   logout,
+  refreshToken,
   signup,
   verifyEmail,
 } from "../controllers/authControllers.js";
@@ -12,5 +13,6 @@ router.post("/signup", signup);
 router.post("/verify-email", verifyEmail);
 router.post("/logout", logout);
 router.post("/login", login);
+router.post("/refresh-token", refreshToken);
 
 export default router;

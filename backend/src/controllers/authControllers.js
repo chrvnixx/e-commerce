@@ -83,19 +83,21 @@ export async function verifyEmail(req, res) {
 export async function logout(req, res) {
   try {
     const refreshToken = req.cookies.refreshToken;
-    if (refreshToken) {
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-      await redis.del(`refresh_token:${decoded.userId}`);
+    if (!refreshToken) {
+      res.json({ message: "No refresh token found" });
     }
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    await redis.del(`refresh_token:${decoded.userId}`);
+
     res.clearCookie("refreshToken");
     res.clearCookie("accessToken");
-    res.json({ message: "Logged out!" });
+
+    res.status(200).json({ message: "Logged out" });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
-    console.log("Error in signup controller", error);
+    res.status(500).json({ success: false, message: "server error" });
+    console.log("Error in logout controller");
   }
 }
-
 export async function login(req, res) {
   const { email, password } = req.body;
   try {
@@ -112,11 +114,54 @@ export async function login(req, res) {
         .status(400)
         .json({ success: false, message: "Invalid credentials" });
     }
+
+    user.lastLogin = Date.now();
+
+    await user.save();
+
     const { accessToken, refreshToken } = generateTokens(user._id);
     await storeRefreshToken(refreshToken, user._id);
     setCookie(accessToken, refreshToken, res);
+
+    res.status(200).json({ success: true, message: "Logged in", user });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
     console.log("Error in login controller", error);
+  }
+}
+
+export async function refreshToken(req, res) {
+  const refreshToken = req.cookies.refreshToken;
+  try {
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Token not found" });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const storedToken = await redis.get(`refresh_token:${decoded.userId}`);
+
+    if (storedToken !== refreshToken) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Invalid refresh token" });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: decoded.userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" },
+    );
+
+    res.cookie("accessToken", accessToken, {
+      httponly: true,
+      secure: (process.env.NODE_ENV = "production"),
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+    console.log("Error in refresh token controller", error);
   }
 }
