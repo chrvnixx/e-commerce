@@ -2,27 +2,26 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: [true, "email is required"],
-      lowercase: true,
-      trim: true,
-    },
     name: {
       type: String,
       required: [true, "Name is required"],
     },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
-      minLength: [6, "Password must be at least 6 characters long"],
     },
-    cartItem: [
+    cartItems: [
       {
         quantity: {
           type: Number,
-          default: 1,
+          defualt: 1,
         },
         product: {
           type: mongoose.Schema.Types.ObjectId,
@@ -32,21 +31,9 @@ const userSchema = new mongoose.Schema(
     ],
     role: {
       type: String,
-      enum: ["customer", "admin"],
-      default: "customer",
+      enum: ["admin", "customer"],
+      defualt: "customer",
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    lastLogin: {
-      type: Date,
-      default: Date.now,
-    },
-    resetPasswordToken: String,
-    resetPasswordTokenExpiresAt: Date,
-    verificationToken: String,
-    verificationTokenExpiresAt: Date,
   },
   { timestamps: true },
 );
