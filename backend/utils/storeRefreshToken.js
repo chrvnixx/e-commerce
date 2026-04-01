@@ -1,4 +1,4 @@
-import { redis } from "../config/redis.js";
+import { redis } from "../config/redis.js"
 
 export default async function storeRefreshToken(userId, refreshToken) {
   await redis.set(
