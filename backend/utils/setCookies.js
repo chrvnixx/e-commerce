@@ -13,4 +13,3 @@ export default function setCookies(res, accessToken, refreshToken) {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
-

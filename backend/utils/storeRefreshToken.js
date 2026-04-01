@@ -4,7 +4,7 @@ export default async function storeRefreshToken(userId, refreshToken) {
   await redis.set(
     `refresh_token:${userId}`,
     refreshToken,
-    "Ex",
+    "EX",
     7 * 24 * 60 * 60,
   );
 }
