@@ -2,13 +2,12 @@ import jwt from "jsonwebtoken";
 import User from "../model/User.js";
 
 export async function protectRoute(req, res, next) {
+  const accessToken = req.cookies.accessToken;
   try {
-    const accessToken = req.cookies.accessToken;
-
     if (!accessToken) {
       return res
-        .status(404)
-        .json({ message: "Unauthorised - no token provided" });
+        .status(401)
+        .json({ message: "Unauthorised - token not provided" });
     }
 
     try {
@@ -16,9 +15,7 @@ export async function protectRoute(req, res, next) {
       const user = await User.findById(decoded.userId);
 
       if (!user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorised - user not found" });
+        return res.status(404).json({ message: "User not found" });
       }
 
       req.user = user;
@@ -26,14 +23,14 @@ export async function protectRoute(req, res, next) {
     } catch (error) {
       if (error.name === "TokenExpiredError") {
         return res
-          .status(401)
-          .json({ message: "Unauthorised - access token expired" });
+          .status(400)
+          .json({ message: "Unauthorised - expired token" });
       }
       throw error;
     }
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
-    console.log("Error in protect route middleware", error);
+    console.log("Error in delete product controller");
   }
 }
 
